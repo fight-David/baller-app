@@ -102,7 +102,7 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-secondary/50 cursor-pointer hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

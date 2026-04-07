@@ -238,14 +238,14 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
               <Button
                 variant="ghost" size="sm"
                 onClick={() => setViewMode("table")}
-                className={`px-3 ${viewMode === "table" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                className={`px-3 cursor-pointer ${viewMode === "table" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
               >
                 <List className="w-4 h-4 mr-2" />表格
               </Button>
               <Button
                 variant="ghost" size="sm"
                 onClick={() => setViewMode("cards")}
-                className={`px-3 ${viewMode === "cards" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                className={`px-3 cursor-pointer ${viewMode === "cards" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
               >
                 <LayoutGrid className="w-4 h-4 mr-2" />卡片
               </Button>
