@@ -11,7 +11,7 @@ import { PlayerCard } from "./player-card"
 import { PlayerModal } from "./player-modal"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { supabase } from "@/lib/supabase"
-import { leaderboardToPlayer, type Player, type TrashTalk, type LeaderboardEntry, type Profile } from "@/lib/data"
+import { leaderboardToPlayer, POSITION_CN, type Player, type TrashTalk, type LeaderboardEntry, type Profile } from "@/lib/data"
 import type { User } from "@supabase/supabase-js"
 
 interface DashboardProps {
@@ -49,6 +49,16 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => {
       if (data) setProfile(data as Profile)
     })
+
+    // Realtime: refresh leaderboard whenever ratings change
+    const channel = supabase
+      .channel("ratings-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ratings" }, () => {
+        fetchLeaderboard()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [fetchLeaderboard])
 
   const filteredPlayers = useMemo(() => {
@@ -140,7 +150,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     }
   }
 
-  const handleRatePlayer = async (playerId: string, ratings: Player["attributes"]) => {
+  const handleRatePlayer = async (playerId: string, ratings: Player["attributes"]): Promise<void> => {
     await supabase.from("ratings").upsert(
       {
         player_id: playerId,
@@ -153,15 +163,42 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
       },
       { onConflict: "player_id,rater_id" }
     )
-    // Refresh leaderboard so OVR updates
-    fetchLeaderboard()
+    // Realtime subscription will trigger fetchLeaderboard automatically
+  }
+
+  const handleProfileUpdated = (updated: Profile) => {
+    setProfile(updated)
+    // Immediately sync the player entry in the leaderboard list
+    setPlayers((prev) =>
+      prev.map((p) =>
+        p.id === updated.id
+          ? {
+              ...p,
+              name: updated.full_name,
+              position: updated.position ? (POSITION_CN[updated.position] ?? p.position) : p.position,
+              avatar_url: updated.avatar_url,
+            }
+          : p
+      )
+    )
+    // Also update selectedPlayer if it's open
+    setSelectedPlayer((prev) =>
+      prev?.id === updated.id
+        ? {
+            ...prev,
+            name: updated.full_name,
+            position: updated.position ? (POSITION_CN[updated.position] ?? prev.position) : prev.position,
+            avatar_url: updated.avatar_url,
+          }
+        : prev
+    )
   }
 
   const emailPrefix = user.email?.split("@")[0] ?? user.id
 
   return (
     <div className="min-h-screen pb-8">
-      <StatusBar email={emailPrefix} profile={profile} onLogout={onLogout} onProfileUpdated={setProfile} />
+      <StatusBar email={emailPrefix} profile={profile} onLogout={onLogout} onProfileUpdated={handleProfileUpdated} />
 
       <main className="pt-20 px-4 max-w-7xl mx-auto">
         <motion.div

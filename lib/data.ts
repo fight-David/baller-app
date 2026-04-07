@@ -73,17 +73,24 @@ export function getPlayerTags(attrs: Player["attributes"]): PlayerTag[] {
   const { shooting, defense, physical, dribbling, longevity } = attrs
 
   // 球风标签
-  if (shooting > 85) tags.push({ label: "中关村准星", color: "text-yellow-400" })
-  if (defense > 85) tags.push({ label: "外线锁死", color: "text-blue-400" })
-  if (dribbling > 85) tags.push({ label: "脚踝终结者", color: "text-orange-400" })
-  if (physical > 85) tags.push({ label: "禁区野兽", color: "text-red-400" })
-  if (longevity > 85) tags.push({ label: "铁人", color: "text-green-400" })
-  if (shooting > 80 && dribbling > 80) tags.push({ label: "双能卫", color: "text-purple-400" })
-  if (defense > 80 && physical > 80) tags.push({ label: "护框机器", color: "text-cyan-400" })
-  if (shooting < 60 && defense > 80 && physical > 80) tags.push({ label: "纯防守型", color: "text-slate-400" })
-  if (longevity > 90) tags.push({ label: "养生大师", color: "text-emerald-400" })
-  if (shooting > 90) tags.push({ label: "神射手", color: "text-yellow-300" })
-  if (dribbling > 90) tags.push({ label: "控球宗师", color: "text-pink-400" })
+  // 80分档（原85分）
+  if (shooting >= 80) tags.push({ label: "神射手", color: "text-yellow-400" })
+  if (defense >= 80) tags.push({ label: "外线锁死", color: "text-blue-400" })
+  if (dribbling >= 80) tags.push({ label: "脚踝终结者", color: "text-orange-400" })
+  if (physical >= 80) tags.push({ label: "禁区野兽", color: "text-red-400" })
+  if (longevity >= 80) tags.push({ label: "铁人", color: "text-green-400" })
+
+  // 75分复合档（原80分）
+  if (shooting >= 75 && dribbling >= 75) tags.push({ label: "双能卫", color: "text-purple-400" })
+  if (defense >= 75 && physical >= 75) tags.push({ label: "护框机器", color: "text-cyan-400" })
+
+  // 特殊逻辑档
+  if (shooting < 55 && defense >= 75 && physical >= 75) tags.push({ label: "防守工兵", color: "text-slate-400" })
+  if (longevity >= 85) tags.push({ label: "养生大师", color: "text-emerald-400" })
+
+  // 顶级成就档（原90分降至85）
+  if (shooting >= 85) tags.push({ label: "神射手", color: "text-yellow-300" }) // 覆盖前面的黄色，颜色更亮
+  if (dribbling >= 85) tags.push({ label: "控球宗师", color: "text-pink-400" })
 
   return tags.slice(0, 3) // max 3 tags per card
 }
