@@ -1,57 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { X, Send, MessageSquare, Heart } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
-import { RadarChart } from "./radar-chart"
-import type { Player, TrashTalk } from "@/lib/data"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Send, MessageSquare, Heart } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { RadarChart } from "./radar-chart";
+import type { Player, TrashTalk } from "@/lib/data";
 
 interface PlayerModalProps {
-  player: Player | null
-  trashTalks: TrashTalk[]
-  currentUserId: string
-  onClose: () => void
-  onAddTrashTalk: (playerId: string, message: string) => void
-  onLikeTrashTalk: (commentId: string) => void
-  onRatePlayer: (playerId: string, ratings: Player["attributes"]) => void
+  player: Player | null;
+  trashTalks: TrashTalk[];
+  currentUserId: string;
+  onClose: () => void;
+  onAddTrashTalk: (playerId: string, message: string) => void;
+  onLikeTrashTalk: (commentId: string) => void;
+  onRatePlayer: (playerId: string, ratings: Player["attributes"]) => void;
 }
 
-export function PlayerModal({ player, trashTalks, onClose, onAddTrashTalk, onLikeTrashTalk, onRatePlayer }: PlayerModalProps) {
+export function PlayerModal({
+  player,
+  trashTalks,
+  onClose,
+  onAddTrashTalk,
+  onLikeTrashTalk,
+  onRatePlayer,
+}: PlayerModalProps) {
   const [userRatings, setUserRatings] = useState<Player["attributes"]>({
     shooting: 50,
     defense: 50,
     physical: 50,
     dribbling: 50,
     longevity: 50,
-  })
-  const [newMessage, setNewMessage] = useState("")
+  });
+  const [newMessage, setNewMessage] = useState("");
 
-  if (!player) return null
+  if (!player) return null;
 
-  const initials = player.name.split("").slice(0, 2).join("")
+  const initials = player.name.split("").slice(0, 2).join("");
 
   const handleSubmitRating = () => {
-    onRatePlayer(player.id, userRatings)
-  }
+    onRatePlayer(player.id, userRatings);
+  };
 
   const handleSubmitTrashTalk = () => {
     if (newMessage.trim()) {
-      onAddTrashTalk(player.id, newMessage.trim())
-      setNewMessage("")
+      onAddTrashTalk(player.id, newMessage.trim());
+      setNewMessage("");
     }
-  }
+  };
 
   const ratingLabels = [
     { key: "shooting", label: "投射 Shooting" },
     { key: "defense", label: "防守 Defense" },
     { key: "physical", label: "身体 Physical" },
     { key: "dribbling", label: "控球 Dribbling" },
-    { key: "longevity", label: "养生 Longevity" },
-  ] as const
+    { key: "longevity", label: "持久力 Longevity" },
+  ] as const;
 
   return (
     <AnimatePresence>
@@ -92,15 +99,27 @@ export function PlayerModal({ player, trashTalks, onClose, onAddTrashTalk, onLik
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">{player.name}</h2>
-                  <p className="text-sm text-muted-foreground font-mono mt-1">{player.position}</p>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {player.name}
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-mono mt-1">
+                    {player.position}
+                  </p>
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-xs font-mono text-muted-foreground">OVERALL</span>
-                    <span className={`text-3xl font-bold ${player.overall >= 90 ? "text-yellow-400 neon-text" :
-                      player.overall >= 80 ? "text-primary" :
-                        player.overall >= 70 ? "text-accent" :
-                          "text-foreground"
-                      }`}>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      OVERALL
+                    </span>
+                    <span
+                      className={`text-3xl font-bold ${
+                        player.overall >= 90
+                          ? "text-yellow-400 neon-text"
+                          : player.overall >= 80
+                            ? "text-primary"
+                            : player.overall >= 70
+                              ? "text-accent"
+                              : "text-foreground"
+                      }`}
+                    >
                       {player.overall}
                     </span>
                     <span className="text-xs font-mono text-muted-foreground">
@@ -130,8 +149,12 @@ export function PlayerModal({ player, trashTalks, onClose, onAddTrashTalk, onLik
                   {ratingLabels.map(({ key, label }) => (
                     <div key={key} className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono text-muted-foreground">{label}</span>
-                        <span className="text-sm font-bold text-primary">{userRatings[key]}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {label}
+                        </span>
+                        <span className="text-sm font-bold text-primary">
+                          {userRatings[key]}
+                        </span>
                       </div>
                       <Slider
                         value={[userRatings[key]]}
@@ -178,21 +201,28 @@ export function PlayerModal({ player, trashTalks, onClose, onAddTrashTalk, onLik
                         <div>
                           <span className="text-primary">[匿名]</span>{" "}
                           <span className="text-muted-foreground text-xs">
-                            {new Date(talk.timestamp).toLocaleTimeString("zh-CN")}
+                            {new Date(talk.timestamp).toLocaleTimeString(
+                              "zh-CN",
+                            )}
                           </span>
                         </div>
                         <button
                           onClick={() => onLikeTrashTalk(talk.id)}
-                          className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-colors ${talk.likedByMe
+                          className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-colors ${
+                            talk.likedByMe
                               ? "text-red-400 bg-red-400/10"
                               : "text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                            }`}
+                          }`}
                         >
-                          <Heart className={`w-3 h-3 ${talk.likedByMe ? "fill-current" : ""}`} />
+                          <Heart
+                            className={`w-3 h-3 ${talk.likedByMe ? "fill-current" : ""}`}
+                          />
                           {talk.likeCount > 0 && <span>{talk.likeCount}</span>}
                         </button>
                       </div>
-                      <p className="text-foreground pl-4 mt-1">{talk.message}</p>
+                      <p className="text-foreground pl-4 mt-1">
+                        {talk.message}
+                      </p>
                     </motion.div>
                   ))
                 )}
@@ -202,7 +232,9 @@ export function PlayerModal({ player, trashTalks, onClose, onAddTrashTalk, onLik
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSubmitTrashTalk()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && handleSubmitTrashTalk()
+                  }
                   placeholder="说点什么..."
                   className="flex-1 bg-secondary/50 border-primary/30 focus:border-primary font-mono"
                 />
@@ -219,5 +251,5 @@ export function PlayerModal({ player, trashTalks, onClose, onAddTrashTalk, onLik
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  )
+  );
 }

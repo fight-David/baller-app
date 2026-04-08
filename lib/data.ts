@@ -81,7 +81,7 @@ export function getPlayerTags(attrs: Player["attributes"]): PlayerTag[] {
   if (shooting > 80 && dribbling > 80) tags.push({ label: "双能卫", color: "text-purple-400" })
   if (defense > 80 && physical > 80) tags.push({ label: "护框机器", color: "text-cyan-400" })
   if (shooting < 60 && defense > 80 && physical > 80) tags.push({ label: "纯防守型", color: "text-slate-400" })
-  if (longevity > 90) tags.push({ label: "养生大师", color: "text-emerald-400" })
+  if (longevity > 90) tags.push({ label: "持久力大师", color: "text-emerald-400" })
   if (shooting > 90) tags.push({ label: "神射手", color: "text-yellow-300" })
   if (dribbling > 90) tags.push({ label: "控球宗师", color: "text-pink-400" })
 
