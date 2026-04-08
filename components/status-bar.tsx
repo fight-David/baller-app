@@ -54,7 +54,7 @@ export function StatusBar({ email, profile, onLogout, onProfileUpdated }: Status
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowEdit(true)}
-                className="h-8 px-3 text-xs font-mono text-muted-foreground hover:bg-secondary/50 border border-border"
+                className="h-8 px-3 text-xs font-mono text-muted-foreground cursor-pointer hover:bg-secondary/50 border border-border"
               >
                 <Settings className="w-3 h-3 mr-1" />
                 <span className="hidden sm:inline">档案</span>
@@ -64,7 +64,7 @@ export function StatusBar({ email, profile, onLogout, onProfileUpdated }: Status
               variant="ghost"
               size="sm"
               onClick={onLogout}
-              className="h-8 px-3 text-xs font-mono text-destructive hover:bg-destructive/10 hover:text-destructive border border-destructive/30"
+              className="h-8 px-3 text-xs font-mono text-destructive hover:bg-destructive/10 cursor-pointer hover:text-destructive border border-destructive/30"
             >
               <Power className="w-3 h-3 mr-1" />
               <span className="hidden sm:inline">SHUTDOWN</span>
