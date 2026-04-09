@@ -174,8 +174,26 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     fetchLeaderboard()
   }
 
-  const handleProfileUpdated = (updated: Profile) => {
+  const handleProfileUpdated = async (updated: Profile) => {
+    const wasObserver = !profile?.is_player
     setProfile(updated)
+
+    // 观察员首次激活为球员时，插入默认自评分让其出现在排行榜
+    if (wasObserver && updated.is_player) {
+      await supabase.from("ratings").insert({
+        player_id: updated.id,
+        rater_id: updated.id,
+        shooting: 60,
+        defense: 60,
+        physical: 60,
+        dribbling: 60,
+        longevity: 60,
+      })
+      // 刷新排行榜让新球员出现
+      fetchLeaderboard()
+      return
+    }
+
     // Immediately sync the player entry in the leaderboard list
     setPlayers((prev) =>
       prev.map((p) =>
@@ -215,10 +233,10 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
           className="text-center mb-8"
         >
           <div className="relative inline-block">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground neon-text">
+            <h1 className="mt-4 text-3xl md:text-4xl lg:text-5xl font-bold text-foreground neon-text">
               [CAS] Baller Hall of Fame
             </h1>
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="mt-4 absolute inset-0 overflow-hidden pointer-events-none">
               <div className="scanning-line absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
             </div>
           </div>

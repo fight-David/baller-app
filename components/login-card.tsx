@@ -45,14 +45,24 @@ export function LoginCard() {
 
   const validateEmail = (email: string): boolean => {
     const validDomains = [
-      /@[a-zA-Z0-9-]+\.ac\.cn$/i,
-      /@[a-zA-Z0-9-]+\ac\.cn$/i, // 建议检查此行，可能漏了点：应为 \.ac\.cn
-      /@ac\.cn$/i,
+      // 1. 匹配所有以 .cas.cn 结尾的（如 ipe.cas.cn）
+      /@[a-zA-Z0-9-.]+\.cas\.cn$/i,
+
+      // 2. 匹配所有以 .ac.cn 结尾的（包括 xxx.ac.cn, mail.xxx.ac.cn 等）
+      /@[a-zA-Z0-9-.]+\.ac\.cn$/i,
+
+      // 3. 匹配国科大专用后缀（教职工、通用、学生）
       /@ucas\.ac\.cn$/i,
+      /@mails\.ucas\.ac\.cn$/i,
       /@mails\.ucas\.edu\.cn$/i,
+
+      // 4. 匹配中科院邮件系统及其他常用后缀
       /@cstnet\.cn$/i,
-      /@qq\.com$/i, // 新增：支持 QQ 邮箱
+
+      // 5. 匹配测试账号登录
+      /@ac\.cn$/i,
     ];
+
     return validDomains.some((pattern) => pattern.test(email));
   };
 
@@ -66,7 +76,7 @@ export function LoginCard() {
     }
     if (!validateEmail(email)) {
       setError(
-        ">> ACCESS DENIED: 非研究所协议检测到。仅允许 *.ac.cn / ucas.ac.cn / mails.ucas.edu.cn / cstnet.cn 域名",
+        ">> ACCESS DENIED: 协议校验失败。仅允许 CAS/UCAS 官方域名 (*.cas.cn / *.ac.cn / cstnet.cn / ucas.edu.cn)",
       );
       return;
     }
@@ -144,8 +154,28 @@ export function LoginCard() {
             </h1>
             <p className="text-muted-foreground text-sm mt-2 font-mono">
               <Terminal className="inline w-3 h-3 mr-1" />
-              研究所身份验证协议
+              中科院身份验证协议
             </p>
+            {/* Domain restriction notice */}
+            <div className="mt-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20 text-left">
+              <p className="text-[10px] font-mono text-primary/70 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                ACCESS CONTROL · 访问限制
+              </p>
+              <p className="text-[11px] font-mono text-muted-foreground leading-relaxed">
+                仅允许以下官方域名邮箱登录：
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {["*.cas.cn", "*.ac.cn", "cstnet.cn", "ucas.edu.cn"].map((domain) => (
+                  <span
+                    key={domain}
+                    className="inline-block px-2 py-0.5 rounded text-[10px] font-mono text-primary border border-primary/30 bg-primary/10"
+                  >
+                    {domain}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Mode toggle */}
@@ -233,7 +263,7 @@ export function LoginCard() {
                       setPassword(e.target.value);
                       setError("");
                     }}
-                    className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground h-12"
+                    className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground placeholder:text-muted-foreground/50 h-12"
                   />
                 </div>
               )}

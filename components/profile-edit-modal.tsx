@@ -82,7 +82,10 @@ export function ProfileEditModal({
         contentType: "image/jpeg",
       });
     if (uploadErr) {
-      setError(`>> ERROR: ${uploadErr.message}`);
+      toast.error("头像上传失败，请稍后重试", {
+        description: uploadErr.message,
+        duration: 3500,
+      });
       return;
     }
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -125,8 +128,13 @@ export function ProfileEditModal({
     // 全局 Snackbar 提示
     if (isNewPlayer) {
       toast.success("档案已激活！你已正式进入 [CAS] Baller 数据库", {
-        duration: 4000,
-        description: "欢迎加入，开始你的篮球传奇之路！",
+        duration: 6000,
+        description:
+          "欢迎加入！请刷新页面以正式加载你的球员档案，并完成首次自评分。",
+        action: {
+          label: "立即刷新",
+          onClick: () => window.location.reload(),
+        },
       });
     } else {
       toast.success("信息已修改！", {
@@ -169,7 +177,10 @@ export function ProfileEditModal({
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="w-16 h-16 border-2 border-primary/50">
-                    <AvatarImage src={avatarUrl || undefined} />
+                    <AvatarImage
+                      onClick={() => fileInputRef.current?.click()}
+                      src={avatarUrl || undefined}
+                    />
                     <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-foreground font-bold text-xl">
                       {profile.full_name.slice(0, 2)}
                     </AvatarFallback>
