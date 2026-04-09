@@ -32,7 +32,6 @@ export function ProfileEditModal({
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isNewPlayer = !profile.is_player;
@@ -40,8 +39,8 @@ export function ProfileEditModal({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      setError(">> ERROR: 图片不能超过 10MB");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("图片不能超过 2MB，请选择更小的图片", { duration: 3000 });
       return;
     }
     const reader = new FileReader();
@@ -93,13 +92,23 @@ export function ProfileEditModal({
     setCropSrc(null);
   };
 
+  const getErrorMessage = (message: string): string => {
+    if (message.includes("duplicate key") && message.includes("full_name")) {
+      return `姓名"${fullName.trim()}"已被其他人使用，请换一个姓名`
+    }
+    if (message.includes("duplicate key")) return "数据重复，请检查填写内容"
+    if (message.includes("violates not-null constraint")) return "有必填项未填写，请检查"
+    if (message.includes("invalid input syntax")) return "输入格式有误，请检查数字字段"
+    if (message.includes("network") || message.includes("fetch")) return "网络连接异常，请检查网络后重试"
+    return message
+  }
+
   const handleSave = async () => {
     if (!fullName.trim()) {
-      setError(">> ERROR: 姓名不能为空");
+      toast.error("姓名不能为空", { duration: 3000 });
       return;
     }
     setIsSubmitting(true);
-    setError("");
 
     const updates: Partial<Profile> = {
       full_name: fullName.trim(),
@@ -118,7 +127,7 @@ export function ProfileEditModal({
       .eq("id", profile.id);
     setIsSubmitting(false);
     if (err) {
-      setError(`>> ERROR: ${err.message}`);
+      toast.error(getErrorMessage(err.message), { duration: 4000 });
       return;
     }
 
@@ -310,10 +319,6 @@ export function ProfileEditModal({
                   className="w-full rounded-md bg-secondary/50 border border-primary/30 focus:border-primary focus:outline-none px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 resize-none"
                 />
               </div>
-
-              {error && (
-                <p className="text-destructive text-xs font-mono">{error}</p>
-              )}
 
               <div className="flex gap-3 pt-2">
                 <Button
