@@ -228,9 +228,20 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
                   trashTalks.map((talk) => (
                     <motion.div key={talk.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="font-mono text-sm">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-primary">[匿名]</span>{" "}
-                          <span className="text-muted-foreground text-xs">{new Date(talk.timestamp).toLocaleTimeString("zh-CN")}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-primary">[匿名]</span>
+                          <span className="text-muted-foreground text-xs">
+                            {new Date(talk.timestamp).toLocaleString("zh-CN", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          {talk.userId === currentUserId && (
+                            <span className="text-[10px] text-primary/60 font-mono border border-primary/30 px-1 rounded">你的评论</span>
+                          )}
                         </div>
                         <button
                           onClick={() => onLikeTrashTalk(talk.id)}

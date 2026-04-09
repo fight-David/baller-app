@@ -1,63 +1,102 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { X, Loader2, Camera } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { AvatarCropModal } from "./avatar-crop-modal"
-import { supabase } from "@/lib/supabase"
-import { POSITION_CN, type Position, type Profile } from "@/lib/data"
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Loader2, Camera } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarCropModal } from "./avatar-crop-modal";
+import { supabase } from "@/lib/supabase";
+import { POSITION_CN, type Position, type Profile } from "@/lib/data";
 
 interface ProfileEditModalProps {
-  profile: Profile
-  onClose: () => void
-  onSaved: (updated: Profile) => void
+  profile: Profile;
+  onClose: () => void;
+  onSaved: (updated: Profile) => void;
 }
 
-const POSITIONS: Position[] = ["PG", "SG", "SF", "PF", "C"]
+const POSITIONS: Position[] = ["PG", "SG", "SF", "PF", "C"];
 
-export function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModalProps) {
-  const [fullName, setFullName] = useState(profile.full_name)
-  const [position, setPosition] = useState<Position | null>(profile.position)
-  const [height, setHeight] = useState(profile.height?.toString() ?? "")
-  const [weight, setWeight] = useState(profile.weight?.toString() ?? "")
-  const [bio, setBio] = useState(profile.bio ?? "")
-  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "")
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState("")
-  const fileInputRef = useRef<HTMLInputElement>(null)
+export function ProfileEditModal({
+  profile,
+  onClose,
+  onSaved,
+}: ProfileEditModalProps) {
+  const [fullName, setFullName] = useState(profile.full_name);
+  const [position, setPosition] = useState<Position | null>(profile.position);
+  const [height, setHeight] = useState(profile.height?.toString() ?? "");
+  const [weight, setWeight] = useState(profile.weight?.toString() ?? "");
+  const [bio, setBio] = useState(profile.bio ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isNewPlayer = !profile.is_player;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setError(">> ERROR: 图片不能超过 10MB"); return }
-    const reader = new FileReader()
-    reader.onload = () => setCropSrc(reader.result as string)
-    reader.readAsDataURL(file)
-    // reset input so same file can be re-selected
-    e.target.value = ""
-  }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError(">> ERROR: 图片不能超过 10MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const getLocalEmail = () => {
+    // 1. 从 localStorage 拿到字符串
+    const authDataString = localStorage.getItem("baller-app-auth");
+
+    if (authDataString) {
+      try {
+        // 2. 将字符串解析为 JS 对象
+        const authData = JSON.parse(authDataString);
+
+        // 3. 按照你发现的层级：authData -> user -> email
+        const email = authData?.user?.email;
+
+        return email || "未找到邮箱";
+      } catch (e) {
+        console.error("解析本地存储失败:", e);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const email = getLocalEmail();
 
   const handleCropConfirm = async (blob: Blob) => {
-    const path = `${profile.id}.jpg`
-    const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, blob, {
-      upsert: true,
-      contentType: "image/jpeg",
-    })
-    if (uploadErr) { setError(`>> ERROR: ${uploadErr.message}`); return }
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path)
-    // bust cache with timestamp
-    setAvatarUrl(`${data.publicUrl}?t=${Date.now()}`)
-    setCropSrc(null)
-  }
+    const path = `${profile.id}.jpg`;
+    const { error: uploadErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, blob, {
+        upsert: true,
+        contentType: "image/jpeg",
+      });
+    if (uploadErr) {
+      setError(`>> ERROR: ${uploadErr.message}`);
+      return;
+    }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    setAvatarUrl(`${data.publicUrl}?t=${Date.now()}`);
+    setCropSrc(null);
+  };
 
   const handleSave = async () => {
-    if (!fullName.trim()) { setError(">> ERROR: 姓名不能为空"); return }
-    setIsSubmitting(true)
-    setError("")
+    if (!fullName.trim()) {
+      setError(">> ERROR: 姓名不能为空");
+      return;
+    }
+    setIsSubmitting(true);
+    setError("");
 
     const updates: Partial<Profile> = {
       full_name: fullName.trim(),
@@ -66,14 +105,35 @@ export function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModal
       height: height ? Number(height) : null,
       weight: weight ? Number(weight) : null,
       avatar_url: avatarUrl || null,
+      // 观察者首次保存信息时，自动升级为球员
+      ...(isNewPlayer ? { is_player: true } : {}),
+    };
+
+    const { error: err } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", profile.id);
+    setIsSubmitting(false);
+    if (err) {
+      setError(`>> ERROR: ${err.message}`);
+      return;
     }
 
-    const { error: err } = await supabase.from("profiles").update(updates).eq("id", profile.id)
-    setIsSubmitting(false)
-    if (err) { setError(`>> ERROR: ${err.message}`); return }
-    onSaved({ ...profile, ...updates })
-    onClose()
-  }
+    onSaved({ ...profile, ...updates });
+    onClose();
+
+    // 全局 Snackbar 提示
+    if (isNewPlayer) {
+      toast.success("档案已激活！你已正式进入 [CAS] Baller 数据库", {
+        duration: 4000,
+        description: "欢迎加入，开始你的篮球传奇之路！",
+      });
+    } else {
+      toast.success("信息已修改！", {
+        duration: 2500,
+      });
+    }
+  };
 
   return (
     <>
@@ -120,18 +180,38 @@ export function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModal
                   >
                     <Camera className="w-3 h-3 text-primary-foreground" />
                   </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
                 </div>
                 <div>
-                  <h2 className="font-bold text-foreground font-mono">编辑球员档案</h2>
-                  <p className="text-xs text-muted-foreground font-mono">{profile.email_prefix}</p>
-                  <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">点击头像更换图片，支持裁剪</p>
+                  <h2 className="font-bold text-foreground font-mono">
+                    {isNewPlayer ? "激活球员档案" : "编辑球员档案"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {profile.email_prefix}
+                  </p>
+                  {isNewPlayer ? (
+                    <p className="text-[11px] text-primary/70 font-mono mt-0.5">
+                      观察员填写信息后保存即可正式激活球员档案
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
+                      点击头像更换图片，支持裁剪
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Name */}
               <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 姓名</label>
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  {">"} 姓名
+                </label>
                 <Input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -139,42 +219,78 @@ export function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModal
                 />
               </div>
 
-              {/* Position */}
-              {profile.is_player && (
-                <div className="space-y-2">
-                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 位置</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {POSITIONS.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setPosition(p)}
-                        className={`px-3 py-1.5 rounded-md text-xs font-mono border transition-colors ${position === p
-                            ? "bg-primary/20 border-primary text-primary"
-                            : "border-border text-muted-foreground hover:border-primary/50"
-                          }`}
-                      >
-                        {POSITION_CN[p]}
-                      </button>
-                    ))}
-                  </div>
+              {/* Email (readonly) */}
+              <div className="space-y-2">
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  {">"} 邮箱
+                </label>
+                <Input
+                  value={email}
+                  disabled
+                  className="bg-secondary/30 border-primary/20 font-mono text-muted-foreground cursor-not-allowed opacity-60"
+                />
+              </div>
+
+              {/* Position — 所有用户（含观察者激活时）均显示 */}
+              <div className="space-y-2">
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  {">"} 位置
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {POSITIONS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPosition(p)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-mono border transition-colors ${
+                        position === p
+                          ? "bg-primary/20 border-primary text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {POSITION_CN[p]}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* Height & Weight */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 身高 (cm)</label>
-                  <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175" min={140} max={230} className="bg-secondary/50 border-primary/30 focus:border-primary font-mono" />
+                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                    {">"} 身高 (cm)
+                  </label>
+                  <Input
+                    type="number"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    placeholder="175"
+                    min={140}
+                    max={230}
+                    className="bg-secondary/50 border-primary/30 focus:border-primary font-mono placeholder:text-slate-500"
+                  />
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 体重 (kg)</label>
-                  <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="70" min={40} max={200} className="bg-secondary/50 border-primary/30 focus:border-primary font-mono" />
+                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                    {">"} 体重 (kg)
+                  </label>
+                  <Input
+                    type="number"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="70"
+                    min={40}
+                    max={200}
+                    className="bg-secondary/50 border-primary/30 focus:border-primary font-mono placeholder:text-slate-500"
+                  />
                 </div>
               </div>
 
               {/* Bio */}
               <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 简介</label>
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  {">"} 简介
+                </label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
@@ -184,12 +300,30 @@ export function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModal
                 />
               </div>
 
-              {error && <p className="text-destructive text-xs font-mono">{error}</p>}
+              {error && (
+                <p className="text-destructive text-xs font-mono">{error}</p>
+              )}
 
               <div className="flex gap-3 pt-2">
-                <Button variant="ghost" onClick={onClose} className="flex-1 border border-border font-mono">取消</Button>
-                <Button onClick={handleSave} disabled={isSubmitting} className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground font-mono">
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "保存"}
+                <Button
+                  variant="ghost"
+                  onClick={onClose}
+                  className="flex-1 border border-border font-mono"
+                >
+                  取消
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground font-mono"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isNewPlayer ? (
+                    "激活档案"
+                  ) : (
+                    "保存"
+                  )}
                 </Button>
               </div>
             </div>
@@ -205,6 +339,5 @@ export function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModal
         />
       )}
     </>
-  )
+  );
 }
-

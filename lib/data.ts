@@ -88,8 +88,13 @@ export function getPlayerTags(attrs: Player["attributes"]): PlayerTag[] {
   if (shooting < 55 && defense >= 75 && physical >= 75) tags.push({ label: "防守工兵", color: "text-slate-400" })
   if (longevity >= 85) tags.push({ label: "耐力大师", color: "text-emerald-400" })
 
-  // 顶级成就档（原90分降至85）
-  if (shooting >= 85) tags.push({ label: "神射手", color: "text-yellow-300" }) // 覆盖前面的黄色，颜色更亮
+  // 顶级成就档（原90分降至85）：升级标签替换普通档
+  if (shooting >= 85) {
+    // 移除普通神射手，换成顶级神射手
+    const idx = tags.findIndex(t => t.label === "神射手")
+    if (idx !== -1) tags.splice(idx, 1)
+    tags.push({ label: "顶级神射手", color: "text-yellow-300" })
+  }
   if (dribbling >= 85) tags.push({ label: "控球宗师", color: "text-pink-400" })
 
   return tags.slice(0, 3) // max 3 tags per card

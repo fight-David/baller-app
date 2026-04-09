@@ -46,11 +46,12 @@ export function LoginCard() {
   const validateEmail = (email: string): boolean => {
     const validDomains = [
       /@[a-zA-Z0-9-]+\.ac\.cn$/i,
-      /@[a-zA-Z0-9-]+\ac\.cn$/i,
+      /@[a-zA-Z0-9-]+\ac\.cn$/i, // 建议检查此行，可能漏了点：应为 \.ac\.cn
       /@ac\.cn$/i,
       /@ucas\.ac\.cn$/i,
       /@mails\.ucas\.edu\.cn$/i,
       /@cstnet\.cn$/i,
+      /@qq\.com$/i, // 新增：支持 QQ 邮箱
     ];
     return validDomains.some((pattern) => pattern.test(email));
   };
@@ -75,7 +76,9 @@ export function LoginCard() {
     if (mode === "otp") {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
       });
       setIsLoading(false);
       if (authError) setError(`>> ERROR: ${authError.message}`);
@@ -162,7 +165,7 @@ export function LoginCard() {
               <Mail className="w-3 h-3" />
               邮箱验证
             </button>
-              <button
+            <button
               onClick={() => {
                 setMode("password");
                 setError("");

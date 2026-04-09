@@ -57,7 +57,7 @@ export function StatusBar({ email, profile, onLogout, onProfileUpdated }: Status
                 className="h-8 px-3 text-xs font-mono text-muted-foreground cursor-pointer hover:bg-secondary/50 border border-border"
               >
                 <Settings className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">档案</span>
+                <span className="hidden sm:inline">{profile.is_player ? "档案" : "注册球员"}</span>
               </Button>
             )}
             <Button

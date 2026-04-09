@@ -229,7 +229,7 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索球员姓名或位置..."
-              className="pl-10 bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono"
+              className="pl-10 bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono placeholder:text-slate-500"
             />
           </div>
 
