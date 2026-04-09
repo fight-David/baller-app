@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Send, MessageSquare, Heart, CheckCircle } from "lucide-react"
+import { X, Send, MessageSquare, Heart, CheckCircle, ChevronDown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 import { RadarChart } from "./radar-chart"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import type { Player, TrashTalk } from "@/lib/data"
 
 interface PlayerModalProps {
@@ -31,17 +32,50 @@ const ratingLabels = [
   { key: "longevity", label: "持久力 Longevity" },
 ] as const
 
+// 政治/敏感词过滤列表
+const SENSITIVE_WORDS = [
+  "习近平", "毛泽东", "共产党", "国民党", "台独", "藏独", "新疆", "法轮功",
+  "天安门", "六四", "民主运动", "颠覆", "推翻", "革命", "政变",
+  "jinping", "ccp", "falun", "tiananmen",
+]
+
+function containsSensitiveContent(text: string): boolean {
+  const lower = text.toLowerCase()
+  return SENSITIVE_WORDS.some(word => lower.includes(word.toLowerCase()))
+}
+
+// 智能排序：综合赞数和时间新鲜度
+// 算法：score = likeCount * 10 + freshness_bonus
+// freshness_bonus: 24h内 +15, 72h内 +8, 7天内 +3, 超过7天 0
+function getCommentScore(talk: TrashTalk): number {
+  const now = Date.now()
+  const age = now - new Date(talk.timestamp).getTime()
+  const hour = 3600 * 1000
+  const day = 24 * hour
+
+  let freshBonus = 0
+  if (age < day) freshBonus = 15
+  else if (age < 3 * day) freshBonus = 8
+  else if (age < 7 * day) freshBonus = 3
+
+  return talk.likeCount * 10 + freshBonus
+}
+
+const PAGE_SIZE = 10
+
 export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddTrashTalk, onLikeTrashTalk, onRatePlayer }: PlayerModalProps) {
   const [userRatings, setUserRatings] = useState<Player["attributes"]>(DEFAULT_RATINGS)
-  const [hasRated, setHasRated] = useState<boolean | null>(null) // null = loading
+  const [hasRated, setHasRated] = useState<boolean | null>(null)
   const [ratingSuccess, setRatingSuccess] = useState(false)
   const [newMessage, setNewMessage] = useState("")
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   useEffect(() => {
     if (!player) return
     setHasRated(null)
     setRatingSuccess(false)
     setUserRatings(DEFAULT_RATINGS)
+    setVisibleCount(PAGE_SIZE)
 
     supabase
       .from("ratings")
@@ -65,6 +99,15 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
       })
   }, [player?.id, currentUserId])
 
+  // 智能排序后的评论列表
+  const sortedTalks = useMemo(() => {
+    return [...trashTalks].sort((a, b) => getCommentScore(b) - getCommentScore(a))
+  }, [trashTalks])
+
+  const visibleTalks = sortedTalks.slice(0, visibleCount)
+  const hasMore = visibleCount < sortedTalks.length
+  const remaining = sortedTalks.length - visibleCount
+
   if (!player) return null
 
   const initials = player.name.split("").slice(0, 2).join("");
@@ -77,11 +120,21 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
   }
 
   const handleSubmitTrashTalk = () => {
-    if (newMessage.trim()) {
-      onAddTrashTalk(player.id, newMessage.trim());
-      setNewMessage("");
+    const msg = newMessage.trim()
+    if (!msg) return
+
+    // 政治/敏感词过滤
+    if (containsSensitiveContent(msg)) {
+      toast.error("评论包含不当内容，无法发布", {
+        description: "请避免涉及政治、宗教等敏感话题",
+        duration: 3500,
+      })
+      return
     }
-  };
+
+    onAddTrashTalk(player.id, msg)
+    setNewMessage("")
+  }
 
   return (
     <AnimatePresence>
@@ -234,66 +287,98 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
 
             {/* Trash Talk Section */}
             <div className="p-8 border-t border-border">
-              <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-wider mb-5 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                {">"} 垃圾话区 Trash Talk
-              </h3>
-
-              <div className="h-48 overflow-y-auto mb-4 space-y-3 bg-secondary/30 rounded-lg p-4">
-                {trashTalks.length === 0 ? (
-                  <p className="text-center text-muted-foreground text-sm font-mono py-8">暂无评论，来点狠话？</p>
-                ) : (
-                  trashTalks.map((talk) => (
-                    <motion.div key={talk.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="font-mono text-sm">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-primary">[匿名]</span>
-                          <span className="text-muted-foreground text-xs">
-                            {new Date(talk.timestamp).toLocaleString("zh-CN", {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          {talk.userId === currentUserId && (
-                            <span className="text-[10px] text-primary/60 font-mono border border-primary/30 px-1 rounded">你的评论</span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => onLikeTrashTalk(talk.id)}
-                          className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-colors ${talk.likedByMe ? "text-red-400 bg-red-400/10" : "text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                            }`}
-                        >
-                          <Heart
-                            className={`w-3 h-3 ${talk.likedByMe ? "fill-current" : ""}`}
-                          />
-                          {talk.likeCount > 0 && <span>{talk.likeCount}</span>}
-                        </button>
-                      </div>
-                      <p className="text-foreground pl-4 mt-1">
-                        {talk.message}
-                      </p>
-                    </motion.div>
-                  ))
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  {">"} 垃圾话区 Trash Talk
+                </h3>
+                {sortedTalks.length > 0 && (
+                  <span className="text-[10px] font-mono text-muted-foreground/60 border border-border px-2 py-0.5 rounded">
+                    共 {sortedTalks.length} 条
+                  </span>
                 )}
               </div>
 
+              {/* 评论列表 */}
+              <div className="mb-4 space-y-3 bg-secondary/30 rounded-lg p-4 max-h-72 overflow-y-auto">
+                {sortedTalks.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm font-mono py-8">暂无评论，来点狠话？</p>
+                ) : (
+                  <>
+                    {visibleTalks.map((talk) => {
+                      const isNew = Date.now() - new Date(talk.timestamp).getTime() < 24 * 3600 * 1000
+                      return (
+                        <motion.div
+                          key={talk.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="font-mono text-sm pb-3 border-b border-border/30 last:border-0 last:pb-0"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-primary">[匿名]</span>
+                              <span className="text-muted-foreground text-xs">
+                                {new Date(talk.timestamp).toLocaleString("zh-CN", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              {isNew && (
+                                <span className="text-[9px] font-mono text-green-400 border border-green-400/30 bg-green-400/10 px-1 rounded">NEW</span>
+                              )}
+                              {talk.userId === currentUserId && (
+                                <span className="text-[10px] text-primary/60 font-mono border border-primary/30 px-1 rounded">你的评论</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => onLikeTrashTalk(talk.id)}
+                              className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-colors ${talk.likedByMe ? "text-red-400 bg-red-400/10" : "text-muted-foreground hover:text-red-400 hover:bg-red-400/10"}`}
+                            >
+                              <Heart className={`w-3 h-3 ${talk.likedByMe ? "fill-current" : ""}`} />
+                              {talk.likeCount > 0 && <span>{talk.likeCount}</span>}
+                            </button>
+                          </div>
+                          <p className="text-foreground pl-4 mt-1 leading-relaxed">
+                            {talk.message}
+                          </p>
+                        </motion.div>
+                      )
+                    })}
+
+                    {/* 懒加载更多 */}
+                    {hasMore && (
+                      <button
+                        onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                        className="w-full mt-2 flex items-center justify-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-primary transition-colors py-2 border border-dashed border-border/50 hover:border-primary/30 rounded-lg"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                        加载更多（还有 {remaining} 条）
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* 输入框 */}
               <div className="flex gap-2">
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && handleSubmitTrashTalk()
-                  }
-                  placeholder="说点什么..."
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmitTrashTalk()}
+                  placeholder="说点狠话... (Enter 发送)"
+                  maxLength={200}
                   className="flex-1 bg-secondary/50 border-primary/30 focus:border-primary font-mono"
                 />
                 <Button onClick={handleSubmitTrashTalk} size="icon" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
+              {newMessage.length > 150 && (
+                <p className="text-[10px] font-mono text-muted-foreground/60 mt-1 text-right">{newMessage.length}/200</p>
+              )}
             </div>
           </div>
         </motion.div>
@@ -301,4 +386,3 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
     </AnimatePresence>
   );
 }
-

@@ -48,30 +48,6 @@ export function ProfileEditModal({
     reader.readAsDataURL(file);
     e.target.value = "";
   };
-
-  const getLocalEmail = () => {
-    // 1. 从 localStorage 拿到字符串
-    const authDataString = localStorage.getItem("baller-app-auth");
-
-    if (authDataString) {
-      try {
-        // 2. 将字符串解析为 JS 对象
-        const authData = JSON.parse(authDataString);
-
-        // 3. 按照你发现的层级：authData -> user -> email
-        const email = authData?.user?.email;
-
-        return email || "未找到邮箱";
-      } catch (e) {
-        console.error("解析本地存储失败:", e);
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const email = getLocalEmail();
-
   const handleCropConfirm = async (blob: Blob) => {
     const path = `${profile.id}.jpg`;
     const { error: uploadErr } = await supabase.storage
@@ -245,7 +221,7 @@ export function ProfileEditModal({
                   {">"} 邮箱
                 </label>
                 <Input
-                  value={email}
+                  value={profile.email}
                   disabled
                   className="bg-secondary/30 border-primary/20 font-mono text-muted-foreground cursor-not-allowed opacity-60"
                 />

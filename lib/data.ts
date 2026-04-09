@@ -8,6 +8,7 @@ export interface Profile {
   email_prefix: string
   avatar_url: string | null
   position: Position | null
+  email: string
   is_player: boolean
   bio: string | null
   height: number | null  // cm
