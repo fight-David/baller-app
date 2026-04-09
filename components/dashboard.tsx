@@ -39,7 +39,14 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
       .order("overall", { ascending: false })
 
     if (!error && data) {
-      setPlayers((data as LeaderboardEntry[]).map(leaderboardToPlayer))
+      const mapped = (data as LeaderboardEntry[]).map(leaderboardToPlayer)
+      setPlayers(mapped)
+      // 同步更新 selectedPlayer，确保弹窗内 overall 实时刷新
+      setSelectedPlayer((prev) => {
+        if (!prev) return prev
+        const updated = mapped.find((p) => p.id === prev.id)
+        return updated ?? prev
+      })
     }
     setLoadingPlayers(false)
   }, [])
@@ -163,7 +170,8 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
       },
       { onConflict: "player_id,rater_id" }
     )
-    // Realtime subscription will trigger fetchLeaderboard automatically
+    // 主动刷新排行榜，确保 overall 实时更新（不依赖 Realtime 延迟）
+    fetchLeaderboard()
   }
 
   const handleProfileUpdated = (updated: Profile) => {
