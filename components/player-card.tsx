@@ -58,6 +58,7 @@ export function PlayerCard({ player, rank, onClick }: PlayerCardProps) {
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-foreground truncate text-base">{player.name}</h3>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">{player.position}</p>
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">{player.email}</p>
 
           {/* OVR Score */}
           <div className="mt-2 flex items-center gap-2">

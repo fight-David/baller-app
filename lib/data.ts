@@ -18,6 +18,10 @@ export interface LeaderboardEntry {
   id: string
   full_name: string
   position: Position
+  email:string
+  is_player: boolean,
+  weight: number | null,
+  height: number | null,
   avatar_url: string | null
   avg_shooting: number
   avg_defense: number
@@ -40,6 +44,10 @@ export interface TrashTalkRow {
 export interface Player {
   id: string
   name: string
+  email:string,
+  is_player: boolean,
+  weight: number | null,
+  height: number | null,
   position: string
   overall: number
   vote_count: number
@@ -116,6 +124,10 @@ export function leaderboardToPlayer(e: LeaderboardEntry): Player {
     overall: Math.round(e.overall),
     vote_count: e.vote_count,
     avatar_url: e.avatar_url,
+    email: e.email,
+    is_player: e.is_player,
+    weight: e.weight,
+    height: e.height,
     attributes: {
       shooting: Math.round(e.avg_shooting),
       defense: Math.round(e.avg_defense),

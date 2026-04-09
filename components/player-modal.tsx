@@ -121,13 +121,31 @@ export function PlayerModal({ player, trashTalks, currentUserId, onClose, onAddT
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex-1 min-w-0">
                   <h2 className="text-2xl font-bold text-foreground">
                     {player.name}
                   </h2>
                   <p className="text-sm text-muted-foreground font-mono mt-1">
                     {player.position}
                   </p>
+                  {/* 邮箱 / 身高 / 体重 信息 */}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {player.email && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono text-muted-foreground border border-border bg-secondary/40">
+                        <span className="text-primary/60">@</span>{player.email}
+                      </span>
+                    )}
+                    {player.height && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono text-muted-foreground border border-border bg-secondary/40">
+                        <span className="text-primary/60">H</span>{player.height} cm
+                      </span>
+                    )}
+                    {player.weight && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono text-muted-foreground border border-border bg-secondary/40">
+                        <span className="text-primary/60">W</span>{player.weight} kg
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-3 flex items-center gap-3">
                     <span className="text-xs font-mono text-muted-foreground">OVERALL</span>
                     <span className={`text-3xl font-bold ${player.overall >= 90 ? "text-yellow-400 neon-text" :

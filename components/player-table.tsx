@@ -48,6 +48,7 @@ export function PlayerTable({ players, onPlayerClick }: PlayerTableProps) {
           <tr className="border-b border-border bg-secondary/30">
             <th className="text-left p-4 text-xs font-mono text-muted-foreground uppercase tracking-wider">排名</th>
             <th className="text-left p-4 text-xs font-mono text-muted-foreground uppercase tracking-wider">球员</th>
+            <th className="text-left p-4 text-xs font-mono text-muted-foreground uppercase tracking-wider hidden lg:table-cell">邮箱</th>
             <th className="text-left p-4 text-xs font-mono text-muted-foreground uppercase tracking-wider hidden sm:table-cell">位置</th>
             <th className="text-center p-4 text-xs font-mono text-muted-foreground uppercase tracking-wider">OVR</th>
             <th className="text-right p-4 text-xs font-mono text-muted-foreground uppercase tracking-wider hidden md:table-cell">属性曲线</th>
@@ -80,6 +81,9 @@ export function PlayerTable({ players, onPlayerClick }: PlayerTableProps) {
                     </Avatar>
                     <span className="font-medium text-foreground">{player.name}</span>
                   </div>
+                </td>
+                <td className="p-4 hidden lg:table-cell">
+                  <span className="text-sm text-muted-foreground font-mono">{(player as any).email ?? '—'}</span>
                 </td>
                 <td className="p-4 hidden sm:table-cell">
                   <span className="text-sm text-muted-foreground font-mono">{player.position}</span>
