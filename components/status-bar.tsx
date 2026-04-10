@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Power, User, Wifi, Settings } from "lucide-react"
+import { Power, User, Wifi, Settings, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProfileEditModal } from "./profile-edit-modal"
+import { UserEditModal } from "./user-edit-modal"
 import type { Profile } from "@/lib/data"
 
 interface StatusBarProps {
@@ -16,6 +17,7 @@ interface StatusBarProps {
 
 export function StatusBar({ email, profile, onLogout, onProfileUpdated }: StatusBarProps) {
   const [showEdit, setShowEdit] = useState(false)
+  const [showUserEdit, setShowUserEdit] = useState(false)
   const agentName = profile?.full_name ?? email
 
   return (
@@ -63,6 +65,15 @@ export function StatusBar({ email, profile, onLogout, onProfileUpdated }: Status
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setShowUserEdit(true)}
+              className="h-8 px-3 text-xs font-mono text-muted-foreground cursor-pointer hover:bg-secondary/50 border border-border"
+            >
+              <KeyRound className="w-3 h-3 mr-1" />
+              <span className="hidden sm:inline">账号安全</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onLogout}
               className="h-8 px-3 text-xs font-mono text-destructive hover:bg-destructive/10 cursor-pointer hover:text-destructive border border-destructive/30"
             >
@@ -78,6 +89,13 @@ export function StatusBar({ email, profile, onLogout, onProfileUpdated }: Status
           profile={profile}
           onClose={() => setShowEdit(false)}
           onSaved={(updated) => { onProfileUpdated(updated); setShowEdit(false) }}
+        />
+      )}
+
+      {showUserEdit && (
+        <UserEditModal
+          currentEmail={profile?.email ?? email}
+          onClose={() => setShowUserEdit(false)}
         />
       )}
     </>

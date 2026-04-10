@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Loader2, Zap, Shield, Terminal, Lock, Mail } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Zap, Shield, Terminal, Lock, Mail, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -30,7 +30,10 @@ const PARTICLE_POSITIONS = [
   { x: 12, y: 88 },
 ];
 
+type View = "login" | "forgot-input" | "forgot-sent";
+
 export function LoginCard() {
+  const [view, setView] = useState<View>("login");
   const [mode, setMode] = useState<"otp" | "password">("otp");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,30 +42,25 @@ export function LoginCard() {
   const [sent, setSent] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Forgot password state
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotError, setForgotError] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const validateEmail = (email: string): boolean => {
     const validDomains = [
-      // 1. 匹配所有以 .cas.cn 结尾的（如 ipe.cas.cn）
       /@[a-zA-Z0-9-.]+\.cas\.cn$/i,
-
-      // 2. 匹配所有以 .ac.cn 结尾的（包括 xxx.ac.cn, mail.xxx.ac.cn 等）
       /@[a-zA-Z0-9-.]+\.ac\.cn$/i,
-
-      // 3. 匹配国科大专用后缀（教职工、通用、学生）
       /@ucas\.ac\.cn$/i,
       /@mails\.ucas\.ac\.cn$/i,
       /@mails\.ucas\.edu\.cn$/i,
-
-      // 4. 匹配中科院邮件系统及其他常用后缀
       /@cstnet\.cn$/i,
-
-      // 5. 匹配测试账号登录
       /@ac\.cn$/i,
     ];
-
     return validDomains.some((pattern) => pattern.test(email));
   };
 
@@ -100,7 +98,29 @@ export function LoginCard() {
       });
       setIsLoading(false);
       if (authError) setError(`>> ERROR: ${authError.message}`);
-      // on success, onAuthStateChange in page.tsx handles the redirect
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setForgotError("");
+    if (!forgotEmail.trim()) {
+      setForgotError(">> ERROR: 请输入邮箱地址");
+      return;
+    }
+    if (!validateEmail(forgotEmail.trim())) {
+      setForgotError(">> ACCESS DENIED: 仅允许 CAS/UCAS 官方域名邮箱");
+      return;
+    }
+    setForgotLoading(true);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(
+      forgotEmail.trim(),
+      { redirectTo: `${window.location.origin}/reset-password` }
+    );
+    setForgotLoading(false);
+    if (err) {
+      setForgotError(`>> ERROR: ${err.message}`);
+    } else {
+      setView("forgot-sent");
     }
   };
 
@@ -140,173 +160,287 @@ export function LoginCard() {
             <div className="scanning-line absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
           </div>
 
-          <div className="text-center mb-6">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring" }}
-              className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/30 mb-4"
-            >
-              <Shield className="w-8 h-8 text-primary" />
-            </motion.div>
-            <h1 className="text-2xl font-bold text-foreground neon-text">
-              [CAS] BALLER SYSTEM
-            </h1>
-            <p className="text-muted-foreground text-sm mt-2 font-mono">
-              <Terminal className="inline w-3 h-3 mr-1" />
-              中科院身份验证协议
-            </p>
-            {/* Domain restriction notice */}
-            <div className="mt-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20 text-left">
-              <p className="text-[10px] font-mono text-primary/70 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
-                ACCESS CONTROL · 访问限制
-              </p>
-              <p className="text-[11px] font-mono text-muted-foreground leading-relaxed">
-                仅允许以下官方域名邮箱登录：
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {["*.cas.cn", "*.ac.cn", "cstnet.cn", "ucas.edu.cn"].map((domain) => (
-                  <span
-                    key={domain}
-                    className="inline-block px-2 py-0.5 rounded text-[10px] font-mono text-primary border border-primary/30 bg-primary/10"
+          <AnimatePresence mode="wait">
+            {/* ── 忘记密码：输入邮箱 ── */}
+            {view === "forgot-input" && (
+              <motion.div
+                key="forgot-input"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                <div>
+                  <button
+                    onClick={() => { setView("login"); setForgotEmail(""); setForgotError(""); }}
+                    className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors mb-4"
                   >
-                    {domain}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mode toggle */}
-          <div className="flex gap-1 p-1 rounded-lg bg-secondary/50 border border-border mb-6">
-            <button
-              onClick={() => {
-                setMode("otp");
-                setError("");
-                setSent(false);
-              }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-mono transition-colors ${
-                mode === "otp"
-                  ? "bg-primary/20 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Mail className="w-3 h-3" />
-              邮箱验证
-            </button>
-            <button
-              onClick={() => {
-                setMode("password");
-                setError("");
-                setSent(false);
-              }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-mono transition-colors ${
-                mode === "password"
-                  ? "bg-primary/20 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Lock className="w-3 h-3" />
-              密码登录
-            </button>
-          </div>
-
-          {sent ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center space-y-4"
-            >
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
-                <p className="text-primary font-mono text-sm">
-                  {">> MAGIC LINK DISPATCHED"}
-                </p>
-                <p className="text-muted-foreground text-xs mt-2 font-mono">
-                  请检查邮箱 {email}，点击链接完成登录
-                </p>
-              </div>
-            </motion.div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                  {">"} 邮箱地址
-                </label>
-                <div className="relative">
-                  <Input
-                    type="email"
-                    placeholder="agent@xxx.ac.cn"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setError("");
-                    }}
-                    className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground placeholder:text-muted-foreground/50 h-12"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary cursor-blink">
-                    _
-                  </span>
+                    <ArrowLeft className="w-3 h-3" />
+                    返回登录
+                  </button>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <Lock className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-foreground font-mono">忘记密码</h2>
+                      <p className="text-xs text-muted-foreground font-mono">输入邮箱，我们将发送重置链接</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {mode === "password" && (
                 <div className="space-y-2">
                   <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                    {">"} 密码
+                    {">"} 邮箱地址
                   </label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError("");
-                    }}
-                    className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground placeholder:text-muted-foreground/50 h-12"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      placeholder="agent@xxx.ac.cn"
+                      value={forgotEmail}
+                      onChange={(e) => { setForgotEmail(e.target.value); setForgotError(""); }}
+                      className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground placeholder:text-muted-foreground/50 h-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary cursor-blink">_</span>
+                  </div>
                 </div>
-              )}
 
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="p-3 rounded-lg bg-destructive/10 border border-destructive/30"
-                >
-                  <p className="text-destructive text-xs font-mono">{error}</p>
-                </motion.div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-mono uppercase tracking-wider relative overflow-hidden group"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {mode === "otp" ? "正在发送邮箱验证链接..." : "验证中..."}
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    {mode === "otp" ? "发送邮箱验证链接" : "登录"}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                  </>
+                {forgotError && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="p-3 rounded-lg bg-destructive/10 border border-destructive/30"
+                  >
+                    <p className="text-destructive text-xs font-mono">{forgotError}</p>
+                  </motion.div>
                 )}
-              </Button>
-            </form>
-          )}
 
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-center text-xs text-muted-foreground font-mono">
-              <span className="text-primary">●</span> 安全连接已建立
-            </p>
-            <p className="text-center text-[10px] text-muted-foreground/50 mt-1 font-mono">
-              v2.4.7 | 中国科学院篮球评分系统
-            </p>
-          </div>
+                <Button
+                  onClick={handleForgotPassword}
+                  disabled={forgotLoading}
+                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-mono uppercase tracking-wider"
+                >
+                  {forgotLoading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />发送中...</>
+                  ) : (
+                    <><Mail className="w-4 h-4 mr-2" />发送重置链接</>
+                  )}
+                </Button>
+
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-[11px] font-mono text-muted-foreground leading-relaxed">
+                    收到邮件后，点击链接将跳转回系统进行密码重设。链接有效期为 1 小时。
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── 忘记密码：已发送 ── */}
+            {view === "forgot-sent" && (
+              <motion.div
+                key="forgot-sent"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6 text-center py-4"
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/30 mx-auto">
+                  <ShieldCheck className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-foreground font-mono text-lg">重置链接已发送</h2>
+                  <p className="text-xs text-muted-foreground font-mono mt-2 leading-relaxed">
+                    请检查邮箱 <span className="text-primary">{forgotEmail}</span> 中的重置邮件，点击链接进行密码重设。
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-left">
+                  <p className="text-[11px] font-mono text-muted-foreground leading-relaxed">
+                    若未收到邮件，请检查垃圾邮件文件夹，或稍后重试。
+                  </p>
+                </div>
+                <Button
+                  onClick={() => { setView("login"); setForgotEmail(""); setForgotError(""); }}
+                  variant="ghost"
+                  className="w-full border border-border font-mono"
+                >
+                  返回登录
+                </Button>
+              </motion.div>
+            )}
+
+            {/* ── 主登录界面 ── */}
+            {view === "login" && (
+              <motion.div
+                key="login"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="text-center mb-6">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring" }}
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/30 mb-4"
+                  >
+                    <Shield className="w-8 h-8 text-primary" />
+                  </motion.div>
+                  <h1 className="text-2xl font-bold text-foreground neon-text">
+                    [CAS] BALLER SYSTEM
+                  </h1>
+                  <p className="text-muted-foreground text-sm mt-2 font-mono">
+                    <Terminal className="inline w-3 h-3 mr-1" />
+                    中科院身份验证协议
+                  </p>
+                  <div className="mt-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20 text-left">
+                    <p className="text-[10px] font-mono text-primary/70 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                      ACCESS CONTROL · 访问限制
+                    </p>
+                    <p className="text-[11px] font-mono text-muted-foreground leading-relaxed">
+                      仅允许以下官方域名邮箱登录：
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {["*.cas.cn", "*.ac.cn", "cstnet.cn", "ucas.edu.cn"].map((domain) => (
+                        <span
+                          key={domain}
+                          className="inline-block px-2 py-0.5 rounded text-[10px] font-mono text-primary border border-primary/30 bg-primary/10"
+                        >
+                          {domain}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mode toggle */}
+                <div className="flex gap-1 p-1 rounded-lg bg-secondary/50 border border-border mb-6">
+                  <button
+                    onClick={() => { setMode("otp"); setError(""); setSent(false); }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-mono transition-colors ${
+                      mode === "otp" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Mail className="w-3 h-3" />
+                    邮箱验证
+                  </button>
+                  <button
+                    onClick={() => { setMode("password"); setError(""); setSent(false); }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-mono transition-colors ${
+                      mode === "password" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Lock className="w-3 h-3" />
+                    密码登录
+                  </button>
+                </div>
+
+                {sent ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center space-y-4"
+                  >
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                      <p className="text-primary font-mono text-sm">
+                        {">> MAGIC LINK DISPATCHED"}
+                      </p>
+                      <p className="text-muted-foreground text-xs mt-2 font-mono">
+                        请检查邮箱 {email}，点击链接完成登录
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                        {">"} 邮箱地址
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="email"
+                          placeholder="agent@xxx.ac.cn"
+                          value={email}
+                          onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                          className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground placeholder:text-muted-foreground/50 h-12"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary cursor-blink">_</span>
+                      </div>
+                    </div>
+
+                    {mode === "password" && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                          {">"} 密码
+                        </label>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                          className="bg-secondary/50 border-primary/30 focus:border-primary focus:ring-primary/30 font-mono text-foreground placeholder:text-muted-foreground/50 h-12"
+                        />
+                      </div>
+                    )}
+
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="p-3 rounded-lg bg-destructive/10 border border-destructive/30"
+                      >
+                        <p className="text-destructive text-xs font-mono">{error}</p>
+                      </motion.div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-mono uppercase tracking-wider relative overflow-hidden group"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          {mode === "otp" ? "正在发送邮箱验证链接..." : "验证中..."}
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          {mode === "otp" ? "发送邮箱验证链接" : "登录"}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                        </>
+                      )}
+                    </Button>
+
+                    {/* 忘记密码链接 — 仅在密码模式下显示 */}
+                    {mode === "password" && (
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => { setView("forgot-input"); setForgotEmail(email); setForgotError(""); }}
+                          className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+                        >
+                          忘记密码？
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                )}
+
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-center text-xs text-muted-foreground font-mono">
+                    <span className="text-primary">●</span> 安全连接已建立
+                  </p>
+                  <p className="text-center text-[10px] text-muted-foreground/50 mt-1 font-mono">
+                    v2.4.7 | 中国科学院篮球评分系统
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </div>
