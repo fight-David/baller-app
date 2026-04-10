@@ -38,7 +38,6 @@ export function RadarChart({
   const angleStep = (2 * Math.PI) / attributes.length;
   const startAngle = -Math.PI / 2;
 
-  // Calculate points for the data polygon
   const dataPoints = useMemo(() => {
     return attributes.map((attr, i) => {
       const angle = startAngle + i * angleStep;
@@ -54,7 +53,6 @@ export function RadarChart({
     dataPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") +
     " Z";
 
-  // Calculate label positions
   const labelPositions = attributes.map((attr, i) => {
     const angle = startAngle + i * angleStep;
     const labelRadius = radius + 25;
@@ -69,7 +67,6 @@ export function RadarChart({
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="overflow-visible">
-        {/* Background levels */}
         {[...Array(levels)].map((_, level) => {
           const levelRadius = ((level + 1) / levels) * radius;
           const points = attributes.map((_, i) => {
@@ -87,7 +84,6 @@ export function RadarChart({
           );
         })}
 
-        {/* Axis lines */}
         {attributes.map((_, i) => {
           const angle = startAngle + i * angleStep;
           return (
@@ -103,7 +99,6 @@ export function RadarChart({
           );
         })}
 
-        {/* Data polygon with glow */}
         <defs>
           <filter id="glow">
             <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -112,13 +107,7 @@ export function RadarChart({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <linearGradient
-            id="radarGradient"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
+          <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="rgba(34, 211, 238, 0.4)" />
             <stop offset="100%" stopColor="rgba(168, 85, 247, 0.4)" />
           </linearGradient>
@@ -136,7 +125,6 @@ export function RadarChart({
           style={{ transformOrigin: `${center}px ${center}px` }}
         />
 
-        {/* Data points */}
         {dataPoints.map((point, i) => (
           <motion.circle
             key={i}
@@ -152,23 +140,16 @@ export function RadarChart({
         ))}
       </svg>
 
-      {/* Labels */}
       {labelPositions.map((pos, i) => (
         <motion.div
           key={i}
           className="absolute text-center"
-          style={{
-            left: pos.x,
-            top: pos.y,
-            transform: "translate(-50%, -50%)",
-          }}
+          style={{ left: pos.x, top: pos.y, transform: "translate(-50%, -50%)" }}
           initial={animate ? { opacity: 0 } : {}}
           animate={animate ? { opacity: 1 } : {}}
           transition={{ delay: 0.5 + i * 0.1 }}
         >
-          <div className="text-xs font-mono text-muted-foreground">
-            {pos.label}
-          </div>
+          <div className="text-xs font-mono text-muted-foreground">{pos.label}</div>
           <div className="text-sm font-bold text-primary">{pos.value}</div>
         </motion.div>
       ))}
@@ -176,59 +157,103 @@ export function RadarChart({
   );
 }
 
-// Mini sparkline version for the table
+// ── 迷你属性条：替换原来看不懂的折线 ──
+const ATTR_CONFIG = [
+  { key: "shooting" as const, label: "投", color: "#22d3ee" },
+  { key: "defense" as const, label: "守", color: "#a855f7" },
+  { key: "physical" as const, label: "身", color: "#f59e0b" },
+  { key: "dribbling" as const, label: "控", color: "#10b981" },
+  { key: "longevity" as const, label: "持", color: "#f43f5e" },
+];
+
 export function MiniRadarSparkline({
   data,
 }: {
   data: RadarChartProps["data"];
 }) {
-  const values = [
-    data.shooting,
-    data.defense,
-    data.physical,
-    data.dribbling,
-    data.longevity,
-  ];
-  const max = 100;
-  const width = 60;
-  const height = 24;
-  const padding = 2;
-
-  const points = values
-    .map((v, i) => {
-      const x = padding + (i / (values.length - 1)) * (width - 2 * padding);
-      const y = height - padding - (v / max) * (height - 2 * padding);
-      return `${x},${y}`;
-    })
-    .join(" ");
+  const barWidth = 28;
+  const gap = 4;
+  const totalWidth = ATTR_CONFIG.length * barWidth + (ATTR_CONFIG.length - 1) * gap;
+  const maxBarHeight = 32;
+  const labelHeight = 12;
+  const svgHeight = maxBarHeight + labelHeight + 4;
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
-      <defs>
-        <linearGradient
-          id="sparklineGradient"
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="0%"
-        >
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="100%" stopColor="#a855f7" />
-        </linearGradient>
-      </defs>
-      <polyline
-        points={points}
-        fill="none"
-        stroke="url(#sparklineGradient)"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {values.map((v, i) => {
-        const x = padding + (i / (values.length - 1)) * (width - 2 * padding);
-        const y = height - padding - (v / max) * (height - 2 * padding);
-        return <circle key={i} cx={x} cy={y} r={2} fill="#22d3ee" />;
-      })}
-    </svg>
+    <div className="flex flex-col items-end gap-0.5">
+      <svg
+        width={totalWidth}
+        height={svgHeight}
+        className="overflow-visible"
+      >
+        <defs>
+          {ATTR_CONFIG.map((attr) => (
+            <linearGradient
+              key={attr.key}
+              id={`bar-grad-${attr.key}`}
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor={attr.color} stopOpacity={0.9} />
+              <stop offset="100%" stopColor={attr.color} stopOpacity={0.3} />
+            </linearGradient>
+          ))}
+        </defs>
+
+        {ATTR_CONFIG.map((attr, i) => {
+          const value = data[attr.key];
+          const barH = Math.max(2, (value / 100) * maxBarHeight);
+          const x = i * (barWidth + gap);
+          const y = maxBarHeight - barH;
+
+          return (
+            <g key={attr.key}>
+              {/* 背景轨道 */}
+              <rect
+                x={x}
+                y={0}
+                width={barWidth}
+                height={maxBarHeight}
+                rx={3}
+                fill="rgba(255,255,255,0.05)"
+              />
+              {/* 实际数值柱 */}
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={barH}
+                rx={3}
+                fill={`url(#bar-grad-${attr.key})`}
+              />
+              {/* 数值文字 */}
+              <text
+                x={x + barWidth / 2}
+                y={y - 2}
+                textAnchor="middle"
+                fontSize={8}
+                fontFamily="monospace"
+                fill={attr.color}
+                opacity={0.9}
+              >
+                {value}
+              </text>
+              {/* 属性标签 */}
+              <text
+                x={x + barWidth / 2}
+                y={maxBarHeight + labelHeight}
+                textAnchor="middle"
+                fontSize={9}
+                fontFamily="monospace"
+                fill="rgba(148,163,184,0.8)"
+              >
+                {attr.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }

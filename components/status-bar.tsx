@@ -6,6 +6,7 @@ import { Power, User, Wifi, Settings, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProfileEditModal } from "./profile-edit-modal"
 import { UserEditModal } from "./user-edit-modal"
+import { toast } from "sonner"
 import type { Profile } from "@/lib/data"
 
 interface StatusBarProps {
@@ -74,7 +75,10 @@ export function StatusBar({ email, profile, onLogout, onProfileUpdated }: Status
             <Button
               variant="ghost"
               size="sm"
-              onClick={onLogout}
+              onClick={() => {
+                toast.success("已安全退出", { duration: 2000 })
+                onLogout()
+              }}
               className="h-8 px-3 text-xs font-mono text-destructive hover:bg-destructive/10 cursor-pointer hover:text-destructive border border-destructive/30"
             >
               <Power className="w-3 h-3 mr-1" />

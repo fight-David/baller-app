@@ -6,6 +6,7 @@ import { Loader2, Zap, Shield, Terminal, Lock, Mail, ArrowLeft, ShieldCheck } fr
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const PARTICLE_POSITIONS = [
   { x: 10, y: 15 },
@@ -97,7 +98,11 @@ export function LoginCard() {
         password,
       });
       setIsLoading(false);
-      if (authError) setError(`>> ERROR: ${authError.message}`);
+      if (authError) {
+        setError(`>> ERROR: ${authError.message}`);
+      } else {
+        toast.success("登录成功，正在跳转...", { duration: 2000 });
+      }
     }
   };
 

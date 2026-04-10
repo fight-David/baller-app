@@ -48,14 +48,12 @@ export function ProfileEditModal({
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+
   const handleCropConfirm = async (blob: Blob) => {
     const path = `${profile.id}.jpg`;
     const { error: uploadErr } = await supabase.storage
       .from("avatars")
-      .upload(path, blob, {
-        upsert: true,
-        contentType: "image/jpeg",
-      });
+      .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
     if (uploadErr) {
       toast.error("头像上传失败，请稍后重试", {
         description: uploadErr.message,
@@ -69,15 +67,14 @@ export function ProfileEditModal({
   };
 
   const getErrorMessage = (message: string): string => {
-    if (message.includes("duplicate key") && message.includes("full_name")) {
-      return `姓名"${fullName.trim()}"已被其他人使用，请换一个姓名`
-    }
-    if (message.includes("duplicate key")) return "数据重复，请检查填写内容"
-    if (message.includes("violates not-null constraint")) return "有必填项未填写，请检查"
-    if (message.includes("invalid input syntax")) return "输入格式有误，请检查数字字段"
-    if (message.includes("network") || message.includes("fetch")) return "网络连接异常，请检查网络后重试"
-    return message
-  }
+    if (message.includes("duplicate key") && message.includes("full_name"))
+      return `姓名"${fullName.trim()}"已被其他人使用，请换一个姓名`;
+    if (message.includes("duplicate key")) return "数据重复，请检查填写内容";
+    if (message.includes("violates not-null constraint")) return "有必填项未填写，请检查";
+    if (message.includes("invalid input syntax")) return "输入格式有误，请检查数字字段";
+    if (message.includes("network") || message.includes("fetch")) return "网络连接异常，请检查网络后重试";
+    return message;
+  };
 
   const handleSave = async () => {
     if (!fullName.trim()) {
@@ -93,7 +90,6 @@ export function ProfileEditModal({
       height: height ? Number(height) : null,
       weight: weight ? Number(weight) : null,
       avatar_url: avatarUrl || null,
-      // 观察者首次保存信息时，自动升级为球员
       ...(isNewPlayer ? { is_player: true } : {}),
     };
 
@@ -110,21 +106,14 @@ export function ProfileEditModal({
     onSaved({ ...profile, ...updates });
     onClose();
 
-    // 全局 Snackbar 提示
     if (isNewPlayer) {
       toast.success("档案已激活！你已正式进入 [CAS] Baller 数据库", {
         duration: 6000,
-        description:
-          "欢迎加入！请刷新页面以正式加载你的球员档案，并完成首次自评分。",
-        action: {
-          label: "立即刷新",
-          onClick: () => window.location.reload(),
-        },
+        description: "欢迎加入！请刷新页面以正式加载你的球员档案，并完成首次自评分。",
+        action: { label: "立即刷新", onClick: () => window.location.reload() },
       });
     } else {
-      toast.success("信息已修改！", {
-        duration: 2500,
-      });
+      toast.success("信息已修改！", { duration: 2500 });
     }
   };
 
@@ -135,33 +124,39 @@ export function ProfileEditModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.95, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            exit={{ scale: 0.95, opacity: 0, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md glass-panel rounded-2xl relative overflow-hidden"
+            className="w-full sm:max-w-md glass-panel sm:rounded-2xl rounded-t-2xl relative overflow-hidden max-h-[92dvh] flex flex-col"
           >
-            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+            {/* scanning line */}
+            <div className="absolute inset-0 overflow-hidden sm:rounded-2xl rounded-t-2xl pointer-events-none">
               <div className="scanning-line absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
             </div>
 
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-secondary/50 cursor-pointer hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-secondary/50 cursor-pointer hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="p-8 space-y-6">
+            {/* 移动端拖拽条 */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-5 sm:p-8 space-y-4 sm:space-y-6">
               {/* Avatar upload */}
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Avatar className="w-16 h-16 border-2 border-primary/50">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-shrink-0">
+                  <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-2 border-primary/50">
                     <AvatarImage
                       onClick={() => fileInputRef.current?.click()}
                       src={avatarUrl || undefined}
@@ -188,50 +183,38 @@ export function ProfileEditModal({
                   <h2 className="font-bold text-foreground font-mono">
                     {isNewPlayer ? "激活球员档案" : "编辑球员档案"}
                   </h2>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {profile.email_prefix}
-                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">{profile.email_prefix}</p>
                   {isNewPlayer ? (
-                    <p className="text-[11px] text-primary/70 font-mono mt-0.5">
-                      观察员填写信息后保存即可正式激活球员档案
-                    </p>
+                    <p className="text-[11px] text-primary/70 font-mono mt-0.5">填写信息后保存即可正式激活</p>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
-                      点击头像更换图片，支持裁剪
-                    </p>
+                    <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">点击头像更换图片，支持裁剪</p>
                   )}
                 </div>
               </div>
 
               {/* Name */}
-              <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                  {">"} 姓名
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 姓名</label>
                 <Input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="bg-secondary/50 border-primary/30 focus:border-primary font-mono"
+                  className="bg-secondary/50 border-primary/30 focus:border-primary font-mono h-10"
                 />
               </div>
 
               {/* Email (readonly) */}
-              <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                  {">"} 邮箱
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 邮箱</label>
                 <Input
                   value={profile.email}
                   disabled
-                  className="bg-secondary/30 border-primary/20 font-mono text-muted-foreground cursor-not-allowed opacity-60"
+                  className="bg-secondary/30 border-primary/20 font-mono text-muted-foreground cursor-not-allowed opacity-60 h-10"
                 />
               </div>
 
-              {/* Position — 所有用户（含观察者激活时）均显示 */}
-              <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                  {">"} 位置
-                </label>
+              {/* Position */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 位置</label>
                 <div className="flex gap-2 flex-wrap">
                   {POSITIONS.map((p) => (
                     <button
@@ -250,11 +233,9 @@ export function ProfileEditModal({
               </div>
 
               {/* Height & Weight */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                    {">"} 身高 (cm)
-                  </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 身高 (cm)</label>
                   <Input
                     type="number"
                     value={height}
@@ -262,14 +243,11 @@ export function ProfileEditModal({
                     placeholder="175"
                     min={140}
                     max={230}
-                    className="bg-secondary/50 border-primary/30 focus:border-primary font-mono placeholder:text-slate-500"
+                    className="bg-secondary/50 border-primary/30 focus:border-primary font-mono placeholder:text-slate-500 h-10"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                    {">"} 体重 (kg)
-                  </label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 体重 (kg)</label>
                   <Input
                     type="number"
                     value={weight}
@@ -277,26 +255,24 @@ export function ProfileEditModal({
                     placeholder="70"
                     min={40}
                     max={200}
-                    className="bg-secondary/50 border-primary/30 focus:border-primary font-mono placeholder:text-slate-500"
+                    className="bg-secondary/50 border-primary/30 focus:border-primary font-mono placeholder:text-slate-500 h-10"
                   />
                 </div>
               </div>
 
               {/* Bio */}
-              <div className="space-y-2">
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                  {">"} 简介
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{">"} 简介</label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="说点什么..."
-                  rows={3}
+                  rows={2}
                   className="w-full rounded-md bg-secondary/50 border border-primary/30 focus:border-primary focus:outline-none px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 resize-none"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1 pb-safe">
                 <Button
                   variant="ghost"
                   onClick={onClose}
